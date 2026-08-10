@@ -1,5 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { createContext, useContext, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { getToken, removeToken, saveToken } from "@/lib/cookie-storage";
 import { User } from "@/types/User";
 import api from "@/lib/api";
@@ -11,7 +18,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   logout: (redirect?: boolean) => void;
-  login: (email: string, password: string) => void;
+  login: (correo: string, password: string) => Promise<boolean>;
+  register: (
+    nombre: string,
+    correo: string,
+    password: string,
+    telefono?: string,
+  ) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,41 +32,66 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   loading: true,
   logout: () => {},
-  login: () => {},
+  login: async () => false,
+  register: async () => false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [loading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  // async function checkAuth() {
-  //   try {
-  //     const accessToken = getToken("access_token");
-  //     const refreshToken = getToken("refresh_token");
-  //     const userCookie = getToken("user");
+  const logout = useCallback(
+    (redirect = true) => {
+      removeToken("access_token");
+      removeToken("refresh_token");
+      removeToken("user");
+      setUser(null);
 
-  //     if (!accessToken && !refreshToken) {
-  //       setUser(null);
-  //       return;
-  //     }
+      if (redirect) router.push("/auth");
+    },
+    [router],
+  );
 
-  //     // RECUPERAR USER DESDE COOKIE
-  //     if (userCookie) {
-  //       try {
-  //         const parsedUser = JSON.parse(userCookie);
-  //         setUser(parsedUser);
-  //       } catch {
-  //         setUser(null);
-  //       }
-  //     }
-  //   } catch (error) {
-  //     toast.error("Error verificando autenticación:" + error);
-  //     logout();
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }
+  useEffect(() => {
+    const checkAuth = () => {
+      try {
+        const accessToken = getToken("access_token");
+        const userCookie = getToken("user");
+
+        if (!accessToken || !userCookie) {
+          setUser(null);
+          return;
+        }
+
+        try {
+          const parsedUser = JSON.parse(userCookie);
+          setUser(parsedUser);
+        } catch {
+          setUser(null);
+          removeToken("user");
+        }
+      } catch (error) {
+        toast.error("Error verificando autenticación: " + error);
+        logout(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [logout]);
+
+  const persistSession = (session: {
+    accessToken: string;
+    refreshToken: string;
+    user: User;
+  }) => {
+    saveToken(session.accessToken, "access_token");
+    saveToken(session.refreshToken, "refresh_token");
+    saveToken(JSON.stringify(session.user), "user");
+    setUser(session.user);
+  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -61,29 +99,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (res.data) {
         const { accessToken, refreshToken, user } = res.data;
-
-        saveToken(accessToken, "access_token");
-        saveToken(refreshToken, "refresh_token");
-        saveToken(JSON.stringify(user), "user");
-
-        setUser(user); // después de guardar
+        persistSession({ accessToken, refreshToken, user });
         router.push("/inicio");
+        return true;
       }
-    } catch {
-      toast.error("Error al iniciar sesión. Verifica tus credenciales.");
+    } catch (e: any) {
+      toast.error(
+        e.response?.data?.message ||
+          "Error al iniciar sesión. Verifica tus credenciales.",
+      );
     }
+    return false;
   };
 
-  const logout = (redirect = true) => {
-    removeToken("access_token");
-    removeToken("refresh_token");
-    removeToken("user");
-    setUser(null);
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    phone?: string,
+  ) => {
+    try {
+      const res = await api.post("/auth/register", {
+        name,
+        email,
+        password,
+        phone,
+      });
 
-    if (redirect) router.push("/login");
+      if (res.data) {
+        const { accessToken, refreshToken, user } = res.data;
+        persistSession({ accessToken, refreshToken, user });
+        router.push("/inicio");
+        return true;
+      }
+    } catch (e: any) {
+      toast.error(
+        e.response?.data?.message ||
+          "No se pudo crear la cuenta. Revisa los datos e intenta de nuevo.",
+      );
+    }
+    return false;
   };
 
-  const isAuthenticated = !!getToken("access_token");
+  const isAuthenticated = Boolean(user && getToken("access_token"));
 
   return (
     <AuthContext.Provider
@@ -93,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         logout,
         login,
+        register,
       }}
     >
       {children}

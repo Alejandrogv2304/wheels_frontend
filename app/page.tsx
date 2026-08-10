@@ -25,13 +25,13 @@ export default function Home() {
 
           <div className="flex flex-wrap gap-3">
             <Button size="lg">
-              <Link href="/auth/signup">
+              <Link href="/auth">
                 Empezar ahora
                 <ArrowRight />
               </Link>
             </Button>
             <Button variant="outline" size="lg">
-              <Link href="/auth/login">Iniciar sesión</Link>
+              <Link href="/auth">Iniciar sesión</Link>
             </Button>
           </div>
         </div>
@@ -53,9 +53,9 @@ export default function Home() {
 
           <div className="mt-4 grid gap-3">
             {[
-              ['Salida', '7:10 a. m.'],
-              ['Ahorro estimado', '$4.500 por viaje'],
-              ['Perfil', 'Conductor verificado'],
+              ['Salida', '8:00 a. m.'],
+              ['Precio', '$4.000 por cupo'],
+              ['Perfil', 'Estudiante'],
             ].map(([label, value]) => (
               <div
                 key={label}
@@ -148,7 +148,7 @@ export default function Home() {
           ruta cercana a tu horario.
         </p>
         <Button size="lg">
-          <Link href="/auth/signup">
+          <Link href="/auth">
             Crear cuenta
             <ArrowRight />
           </Link>
