@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, Suspense } from "react";
+import { FormEvent, useState, Suspense, useEffect } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { CheckCircle2, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 const benefits = [
   {
@@ -29,12 +30,12 @@ const benefits = [
 ];
 
 function AuthForm() {
-  const { login, register } = useAuth();
+  const { login, register, handleOAuthCallback, startOAuth } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
 
-  // 1. Estado derivado directamente de la URL (Fuente de la verdad)
+  // Estado derivado directamente de la URL
   const modeParam = searchParams.get("mode");
   const mode: "login" | "register" =
     modeParam === "login" ? "login" : "register";
@@ -43,9 +44,53 @@ function AuthForm() {
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  // 2. Cambiar de modo actualizando el parámetro en la URL
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // If opened as an OAuth popup, process callback via context, notify opener and close.
+    if (window.opener && window.opener !== window) {
+      const hash = window.location.hash;
+      (async () => {
+        if (hash) {
+          try {
+            await handleOAuthCallback(hash);
+          } catch {
+            // ignore
+          }
+        }
+
+        try {
+          window.opener.postMessage(
+            { type: "oauth", provider: "google" },
+            window.location.origin,
+          );
+        } catch {
+          // ignore
+        }
+
+        window.close();
+      })();
+    }
+  }, [handleOAuthCallback]);
+
+  // Listen for oauth messages from popup and navigate to home when received
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === "oauth") {
+        router.replace("/inicio");
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [router]);
+
+  // Cambiar de modo actualizando el parámetro en la URL
   const handleModeChange = (newMode: "login" | "register") => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("mode", newMode);
@@ -56,6 +101,11 @@ function AuthForm() {
     event.preventDefault();
     if (!email || !password || (mode === "register" && !name)) return;
 
+    if (mode === "register" && password !== confirmPassword) {
+      toast.error("Las contraseñas no coinciden");
+      return;
+    }
+
     setLoading(true);
 
     if (mode === "login") {
@@ -65,6 +115,15 @@ function AuthForm() {
     }
 
     setLoading(false);
+  };
+
+  const handleGoogleOAuth = async () => {
+    try {
+      setGoogleLoading(true);
+      await startOAuth("google");
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -154,6 +213,24 @@ function AuthForm() {
                     />
                   </div>
 
+                  {mode === "register" && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="confirmPassword">
+                        Confirmar contraseña
+                      </Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(event) =>
+                          setConfirmPassword(event.target.value)
+                        }
+                        placeholder="********"
+                        required
+                      />
+                    </div>
+                  )}
+
                   <Button
                     type="submit"
                     size="lg"
@@ -165,6 +242,46 @@ function AuthForm() {
                       : mode === "register"
                         ? "Crear cuenta"
                         : "Iniciar sesión"}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="w-full flex items-center justify-center gap-3"
+                    onClick={handleGoogleOAuth}
+                    disabled={googleLoading}
+                  >
+                    {googleLoading ? (
+                      "Redirigiendo..."
+                    ) : (
+                      <>
+                        <svg
+                          className="h-5 w-5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M21.35 11.1h-9.2v2.8h5.3c-.2 1.2-.9 2.2-1.9 2.9v2.3h3.1c1.7-1.6 2.7-3.9 2.7-6.7 0-.6-.1-1.1-.2-1.6z"
+                            fill="#4285F4"
+                          />
+                          <path
+                            d="M12.15 21c2.6 0 4.8-.86 6.4-2.35l-3.1-2.3c-.86.57-1.97.9-3.3.9-2.54 0-4.7-1.72-5.48-4.03H3.1v2.52C4.7 18.9 8.17 21 12.15 21z"
+                            fill="#34A853"
+                          />
+                          <path
+                            d="M6.67 13.22A6.13 6.13 0 016.5 12c0-.4.06-.8.15-1.17V8.31H3.1A9.99 9.99 0 002.15 12c0 1.62.38 3.15 1.03 4.54l3.49-3.32z"
+                            fill="#FBBC05"
+                          />
+                          <path
+                            d="M12.15 7.5c1.42 0 2.63.48 3.61 1.42l2.7-2.7C16.95 4.66 14.75 3.6 12.15 3.6 8.17 3.6 4.7 5.69 3.1 8.88l3.55 2.52C7.45 9.22 9.61 7.5 12.15 7.5z"
+                            fill="#EA4335"
+                          />
+                        </svg>
+                        Continuar con Google
+                      </>
+                    )}
                   </Button>
                 </form>
               </CardContent>
