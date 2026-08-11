@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { CheckCircle2, MapPin, ShieldCheck, Users } from "lucide-react";
+import { FormEvent, useState, Suspense } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { CheckCircle2, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,11 +21,6 @@ const benefits = [
     description: "Encuentra rutas compatibles con tu horario y destino.",
     icon: MapPin,
   },
-  // {
-  //   title: "Comunidad confiable",
-  //   description: "Viaja con usuarios verificados y perfiles transparentes.",
-  //   icon: ShieldCheck,
-  // },
   {
     title: "Ahorro diario",
     description: "Reduce tus costos compartiendo viajes con otros.",
@@ -32,20 +28,35 @@ const benefits = [
   },
 ];
 
-export default function AuthPage() {
+function AuthForm() {
   const { login, register } = useAuth();
-  const [mode, setMode] = useState<"login" | "register">("register");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // 1. Estado derivado directamente de la URL (Fuente de la verdad)
+  const modeParam = searchParams.get("mode");
+  const mode: "login" | "register" =
+    modeParam === "login" ? "login" : "register";
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // 2. Cambiar de modo actualizando el parámetro en la URL
+  const handleModeChange = (newMode: "login" | "register") => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("mode", newMode);
+    router.replace(`${pathname}?${params.toString()}`);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!email || !password || (mode === "register" && !name)) return;
 
-    setSubmitting(true);
+    setLoading(true);
 
     if (mode === "login") {
       await login(email, password);
@@ -53,69 +64,26 @@ export default function AuthPage() {
       await register(name, email, password, telefono || undefined);
     }
 
-    setSubmitting(false);
+    setLoading(false);
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/50 px-4 py-10">
+    <main className="flex min-h-screen min-w-screen md:w-auto items-center justify-center bg-muted/50 px-4 py-10">
       <section className="w-full max-w-7xl rounded-4xl border border-border bg-card p-6 shadow-[0_24px_80px_rgba(16,45,18,0.14)] backdrop-blur-xl sm:p-10">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
-          <div className="flex flex-col justify-between rounded-4xl bg-primary/5 p-8 text-(--text-primary) shadow-sm sm:p-10">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
-                <CheckCircle2 className="h-4 w-4" />
-                Bienvenido a Wheels
-              </div>
-
-              <div className="space-y-4">
-                <p className="text-sm uppercase tracking-[0.35em] text-muted-foreground">
-                  Movilidad compartida
-                </p>
-                <h1 className="text-4xl font-semibold leading-tight text-(--text-primary) sm:text-5xl">
-                  Crea tu cuenta y comienza a viajar más inteligente.
-                </h1>
-                <p className="max-w-xl text-base leading-7 text-(--text-secondary)">
-                  Explora todas las ventajas de compartir rutas dentro de la
-                  comunidad UIS.
-                </p>
-              </div>
-
-              <div className="grid gap-4">
-                {benefits.map((item) => (
-                  <div
-                    key={item.title}
-                    className="rounded-3xl border border-border bg-card p-5 shadow-sm"
-                  >
-                    <div className="flex items-center gap-4">
-                      <item.icon className="h-6 w-6 text-primary" />
-                      <div>
-                        <p className="text-base font-semibold text-(--text-primary)">
-                          {item.title}
-                        </p>
-                        <p className="mt-1 text-sm leading-6 text-(--text-secondary)">
-                          {item.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-3 rounded-full bg-muted px-1.5 py-1 shadow-sm">
               <Button
                 variant={mode === "register" ? "default" : "outline"}
                 className="w-full rounded-full px-4"
-                onClick={() => setMode("register")}
+                onClick={() => handleModeChange("register")}
               >
                 Crear cuenta
               </Button>
               <Button
                 variant={mode === "login" ? "default" : "outline"}
                 className="w-full rounded-full px-4"
-                onClick={() => setMode("login")}
+                onClick={() => handleModeChange("login")}
               >
                 Iniciar sesión
               </Button>
@@ -190,10 +158,10 @@ export default function AuthPage() {
                     type="submit"
                     size="lg"
                     className="w-full"
-                    disabled={submitting}
+                    disabled={loading}
                   >
-                    {submitting
-                      ? "Procesando..."
+                    {loading
+                      ? "Cargando..."
                       : mode === "register"
                         ? "Crear cuenta"
                         : "Iniciar sesión"}
@@ -202,8 +170,65 @@ export default function AuthPage() {
               </CardContent>
             </Card>
           </div>
+
+          <div className="hidden md:flex flex-col justify-between rounded-4xl bg-primary/5 p-8 text-(--text-primary) shadow-sm sm:p-10">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+                <CheckCircle2 className="h-4 w-4" />
+                Bienvenido a Wheels
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-sm uppercase tracking-[0.35em] text-muted-foreground">
+                  Movilidad compartida
+                </p>
+                <h1 className="text-4xl font-semibold leading-tight text-(--text-primary) sm:text-5xl">
+                  Crea tu cuenta y comienza a viajar más inteligente.
+                </h1>
+                <p className="max-w-xl text-base leading-7 text-(--text-secondary)">
+                  Explora todas las ventajas de compartir rutas dentro de la
+                  comunidad.
+                </p>
+              </div>
+
+              <div className="grid gap-4">
+                {benefits.map((item) => (
+                  <div
+                    key={item.title}
+                    className="rounded-3xl border border-border bg-card p-5 shadow-sm"
+                  >
+                    <div className="flex items-center gap-4">
+                      <item.icon className="h-6 w-6 text-primary" />
+                      <div>
+                        <p className="text-base font-semibold text-(--text-primary)">
+                          {item.title}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-(--text-secondary)">
+                          {item.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </main>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          Cargando...
+        </div>
+      }
+    >
+      <AuthForm />
+    </Suspense>
   );
 }

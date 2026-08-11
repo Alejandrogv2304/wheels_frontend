@@ -1,6 +1,6 @@
-import { ArrowRight, Clock3, MapPin, ShieldCheck, Users } from 'lucide-react'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+import { Clock3, MapPin, ShieldCheck, Users } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -25,13 +25,10 @@ export default function Home() {
 
           <div className="flex flex-wrap gap-3">
             <Button size="lg">
-              <Link href="/auth">
-                Empezar ahora
-                <ArrowRight />
-              </Link>
+              <Link href="/auth?mode=register">Empezar ahora</Link>
             </Button>
             <Button variant="outline" size="lg">
-              <Link href="/auth">Iniciar sesión</Link>
+              <Link href="/auth?mode=login">Iniciar sesión</Link>
             </Button>
           </div>
         </div>
@@ -42,7 +39,7 @@ export default function Home() {
               <div>
                 <p className="text-sm text-muted-foreground">Ruta destacada</p>
                 <h2 className="m-0 text-2xl font-semibold">
-                  Cabecera {'->'} UIS
+                  Cabecera {"->"} UIS
                 </h2>
               </div>
               <span className="rounded-full bg-primary px-3 py-1 text-sm font-medium text-primary-foreground">
@@ -53,9 +50,9 @@ export default function Home() {
 
           <div className="mt-4 grid gap-3">
             {[
-              ['Salida', '8:00 a. m.'],
-              ['Precio', '$4.000 por cupo'],
-              ['Perfil', 'Estudiante'],
+              ["Salida", "8:00 a. m."],
+              ["Precio", "$4.000 por cupo"],
+              ["Perfil", "Estudiante"],
             ].map(([label, value]) => (
               <div
                 key={label}
@@ -78,23 +75,23 @@ export default function Home() {
           {[
             {
               icon: MapPin,
-              title: 'Rutas por afinidad',
-              text: 'Encuentra personas que salen de zonas cercanas y llegan al mismo destino.',
+              title: "Rutas por afinidad",
+              text: "Encuentra personas que salen de zonas cercanas y llegan al mismo destino.",
             },
             {
               icon: ShieldCheck,
-              title: 'Confianza primero',
-              text: 'Perfiles, historial y verificación para viajar con más tranquilidad.',
+              title: "Confianza primero",
+              text: "Perfiles, historial y verificación para viajar con más tranquilidad.",
             },
             {
               icon: Clock3,
-              title: 'Horarios claros',
-              text: 'Coordina salidas recurrentes para clase, trabajo o regreso a casa.',
+              title: "Horarios claros",
+              text: "Coordina salidas recurrentes para clase, trabajo o regreso a casa.",
             },
             {
               icon: Users,
-              title: 'Comunidad activa',
-              text: 'Convierte trayectos diarios en una red de apoyo y ahorro compartido.',
+              title: "Comunidad activa",
+              text: "Convierte trayectos diarios en una red de apoyo y ahorro compartido.",
             },
           ].map((feature) => (
             <div key={feature.title} className="card space-y-3">
@@ -148,12 +145,9 @@ export default function Home() {
           ruta cercana a tu horario.
         </p>
         <Button size="lg">
-          <Link href="/auth">
-            Crear cuenta
-            <ArrowRight />
-          </Link>
+          <Link href="/auth?mode=register">Crear cuenta</Link>
         </Button>
       </section>
     </main>
-  )
+  );
 }

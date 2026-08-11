@@ -1,15 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import {
-  User,
-  Home,
-  Settings,
-  LogOut,
-  BookUser,
-  FileText,
-  TestTubeDiagonal,
-} from "lucide-react";
+import { User, Home, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
 import {
   Sidebar,
@@ -64,7 +56,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Laboratorio RX</SidebarGroupLabel>
+          <SidebarGroupLabel>Wheels UIS</SidebarGroupLabel>
 
           <Separator className="my-2" />
 
@@ -96,7 +88,7 @@ export function AppSidebar() {
         </Button>
 
         <p className="text-[10px] text-muted-foreground text-center">
-          © {currentYear} STI. Todos los derechos reservados.
+          © {currentYear} GuatauvaTech.
         </p>
       </SidebarFooter>
     </Sidebar>
