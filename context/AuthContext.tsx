@@ -88,7 +88,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const me = await api.get("/auth/me");
         const fetchedUser = me.data?.user || me.data;
         if (fetchedUser) {
-          persistSession({ accessToken, refreshToken: refreshToken || "", user: fetchedUser });
+          persistSession({
+            accessToken,
+            refreshToken: refreshToken || "",
+            user: fetchedUser,
+          });
           return;
         }
       } catch {
@@ -106,13 +110,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (fallbackUser) {
-        persistSession({ accessToken, refreshToken: refreshToken || "", user: fallbackUser });
+        persistSession({
+          accessToken,
+          refreshToken: refreshToken || "",
+          user: fallbackUser,
+        });
         router.push("/inicio");
         return;
       }
 
       // If we reach here, we have tokens but couldn't hydrate a user
-      toast.success("Autenticación completada. Por favor espera mientras se finaliza la sesión.");
+      toast.success(
+        "Autenticación completada. Por favor espera mientras se finaliza la sesión.",
+      );
       router.push("/inicio");
     } catch (e: any) {
       console.error(e);
@@ -165,8 +175,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await api.post("/auth/login", { email, password });
 
       if (res.data) {
-        const { accessToken, refreshToken, user } = res.data;
-        persistSession({ accessToken, refreshToken, user });
+        const { session, profile } = res.data;
+        persistSession({
+          accessToken: session.accessToken,
+          refreshToken: session.refreshToken,
+          user: profile,
+        });
         router.push("/inicio");
         return true;
       }
@@ -183,7 +197,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return;
     try {
       const redirectTo = `${window.location.origin}/auth`;
-      const res = await api.get(`/auth/${provider}`, { params: { redirectTo } });
+      const res = await api.get(`/auth/${provider}`, {
+        params: { redirectTo },
+      });
       const url = res.data?.url;
       if (!url) {
         toast.error("No se recibió la URL de autenticación");
@@ -198,7 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const popup = window.open(
         url,
         `oauth_${provider}`,
-        `popup=yes,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`
+        `popup=yes,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`,
       );
 
       if (!popup) {
@@ -208,17 +224,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       let handled = false;
 
-      const messageListener = (e: MessageEvent) => {
+      const messageListener = async (e: MessageEvent) => {
         if (e.origin !== window.location.origin) return;
         if (e.data?.type === "oauth") {
           handled = true;
-          toast.success("Autenticado correctamente");
           try {
-            if (!popup.closed) popup.close();
-          } catch {}
-          window.removeEventListener("message", messageListener);
-              // navigate parent to inicio
-              router.push("/inicio");
+            // If the popup sends tokens directly, save them first so api can use them
+            const accessTokenFromMsg =
+              e.data?.access_token || e.data?.accessToken || e.data?.token;
+            const refreshTokenFromMsg =
+              e.data?.refresh_token || e.data?.refreshToken;
+            if (accessTokenFromMsg) {
+              saveToken(accessTokenFromMsg, "access_token");
+              if (refreshTokenFromMsg)
+                saveToken(refreshTokenFromMsg, "refresh_token");
+            }
+
+            // Try to hydrate user from backend endpoint /users/me
+            try {
+              const me = await api.get("/users/me");
+              const fetchedUser = me.data?.user || me.data;
+
+              // backend may return accessToken inside body; prefer explicit token
+              const returnedAccess =
+                me.data?.accessToken || accessTokenFromMsg || "";
+              const returnedRefresh =
+                me.data?.refreshToken || refreshTokenFromMsg || "";
+
+              if (fetchedUser) {
+                persistSession({
+                  accessToken: returnedAccess,
+                  refreshToken: returnedRefresh,
+                  user: fetchedUser,
+                });
+                toast.success("Autenticado correctamente");
+                try {
+                  if (!popup.closed) popup.close();
+                } catch {}
+                window.removeEventListener("message", messageListener);
+                router.push("/inicio");
+                return;
+              }
+            } catch (err) {
+              // If fetching /users/me failed, continue to fallback handling below
+              console.warn("/users/me fallback failed", err);
+            }
+
+            toast.success("Autenticación completada. Finalizando sesión...");
+            try {
+              if (!popup.closed) popup.close();
+            } catch {}
+            window.removeEventListener("message", messageListener);
+            router.push("/inicio");
+          } catch (err) {
+            console.error(err);
+            toast.error("Error procesando respuesta de OAuth");
+          }
         }
       };
 
@@ -229,7 +290,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           clearInterval(poll);
           window.removeEventListener("message", messageListener);
           if (!handled) {
-            toast.error("La ventana de autenticación se cerró sin completar el proceso.");
+            toast.error(
+              "La ventana de autenticación se cerró sin completar el proceso.",
+            );
           }
         }
       }, 500);

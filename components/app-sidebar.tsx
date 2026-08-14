@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { User, Home, Settings, LogOut } from "lucide-react";
+import { Car, Home, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
 import {
   Sidebar,
@@ -32,9 +32,9 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
     icon: Home,
   },
   {
-    title: "Usuarios",
-    url: "/usuarios",
-    icon: User,
+    title: "Vehiculos",
+    url: "/vehiculos",
+    icon: Car,
   },
   {
     title: "Configuración",
