@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Car, Home, Settings, LogOut } from "lucide-react";
+import { Car, Route, Home, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
 import {
   Sidebar,
@@ -30,6 +30,11 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
     title: "Inicio",
     url: "/inicio",
     icon: Home,
+  },
+  {
+    title: "Rutas",
+    url: "/rutas",
+    icon: Route,
   },
   {
     title: "Vehiculos",
@@ -67,7 +72,8 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     render={<Link href={item.url} />}
                     isActive={
-                      pathname === item.url || pathname.startsWith(`${item.url}/`)
+                      pathname === item.url ||
+                      pathname.startsWith(`${item.url}/`)
                     }
                     className="data-active:bg-primary data-active:text-primary-foreground data-active:hover:bg-primary/90"
                   >
