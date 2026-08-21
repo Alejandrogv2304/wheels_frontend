@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Try to fetch user info from backend
       try {
-        const me = await api.get("/auth/me");
+        const me = await api.get("/users/me");
         const fetchedUser = me.data?.user || me.data;
         if (fetchedUser) {
           persistSession({
@@ -131,22 +131,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
         const accessToken = getToken("access_token");
         const userCookie = getToken("user");
 
-        if (!accessToken || !userCookie) {
+        if (!accessToken) {
           setUser(null);
           return;
         }
 
+        if (userCookie) {
+          try {
+            setUser(JSON.parse(decodeURIComponent(userCookie)));
+            return;
+          } catch {
+            removeToken("user");
+          }
+        }
+
         try {
-          const parsedUser = JSON.parse(userCookie);
-          setUser(parsedUser);
-        } catch {
+          const me = await api.get("/users/me");
+          const fetchedUser = me.data?.user || me.data;
+          if (!fetchedUser) throw new Error("El endpoint /users/me no devolvió usuario");
+
+          saveToken(JSON.stringify(fetchedUser), "user");
+          setUser(fetchedUser);
+        } catch (error) {
+          console.error("No se pudo hidratar la sesión:", error);
           setUser(null);
-          removeToken("user");
         }
       } catch (error) {
         toast.error("Error verificando autenticación: " + error);
