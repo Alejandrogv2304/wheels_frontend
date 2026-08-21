@@ -41,11 +41,28 @@ export function ViajeCreateDialog({ open, onOpenChange, onCreated }: ViajeCreate
   const [rutaId, setRutaId] = useState("");
   const [vehiculoId, setVehiculoId] = useState("");
   const [precio, setPrecio] = useState("");
-  const [cupos, setCupos] = useState("");
   const [fechaSalida, setFechaSalida] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const selectedVehicle = vehiculos.find(
+    (vehiculo) => String(vehiculo.id) === vehiculoId,
+  );
+  const calculatedCupos = selectedVehicle
+    ? Math.max(0, Number(selectedVehicle.capacidad ?? 0) - 1)
+    : null;
+
+  function getNextFullHour() {
+    const nextHour = new Date();
+    nextHour.setMinutes(0, 0, 0);
+    nextHour.setHours(nextHour.getHours() + 1);
+    const year = nextHour.getFullYear();
+    const month = String(nextHour.getMonth() + 1).padStart(2, "0");
+    const day = String(nextHour.getDate()).padStart(2, "0");
+    const hour = String(nextHour.getHours()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hour}:00`;
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -63,6 +80,7 @@ export function ViajeCreateDialog({ open, onOpenChange, onCreated }: ViajeCreate
           : vehiculosResponse?.data ?? [];
         setRutas(rutasResponse);
         setVehiculos(vehicles);
+        setFechaSalida(getNextFullHour());
       } catch (error) {
         console.error(error);
         toast.error("No se pudieron cargar rutas y vehículos");
@@ -80,14 +98,13 @@ export function ViajeCreateDialog({ open, onOpenChange, onCreated }: ViajeCreate
     setRutaId("");
     setVehiculoId("");
     setPrecio("");
-    setCupos("");
     setFechaSalida("");
     setObservaciones("");
   }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!rutaId || !vehiculoId || !precio || !cupos || !fechaSalida) {
+    if (!rutaId || !vehiculoId || !precio || !calculatedCupos || !fechaSalida) {
       toast.error("Completa todos los datos obligatorios del viaje");
       return;
     }
@@ -98,7 +115,7 @@ export function ViajeCreateDialog({ open, onOpenChange, onCreated }: ViajeCreate
         rutaId,
         vehiculoId,
         precio: Number(precio),
-        cupos: Number(cupos),
+        cupos: calculatedCupos,
         fechaSalida: new Date(fechaSalida).toISOString(),
         observaciones: observaciones.trim() || undefined,
       });
@@ -147,7 +164,7 @@ export function ViajeCreateDialog({ open, onOpenChange, onCreated }: ViajeCreate
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label htmlFor="viaje-precio">Precio por cupo</Label><Input id="viaje-precio" type="number" min="0" step="1" value={precio} onChange={(event) => setPrecio(event.target.value)} required /></div>
-            <div className="grid gap-2"><Label htmlFor="viaje-cupos">Cupos</Label><Input id="viaje-cupos" type="number" min="1" step="1" value={cupos} onChange={(event) => setCupos(event.target.value)} required /></div>
+            <div className="grid gap-2"><Label htmlFor="viaje-cupos">Cupos disponibles</Label><Input id="viaje-cupos" type="number" min="1" step="1" value={calculatedCupos ?? ""} readOnly required /><p className="text-xs text-muted-foreground">Capacidad del vehículo menos el asiento del conductor.</p></div>
           </div>
           <div className="grid gap-2"><Label htmlFor="viaje-fecha">Fecha y hora de salida</Label><Input id="viaje-fecha" type="datetime-local" value={fechaSalida} onChange={(event) => setFechaSalida(event.target.value)} required /></div>
           <div className="grid gap-2"><Label htmlFor="viaje-observaciones">Observaciones</Label><Textarea id="viaje-observaciones" value={observaciones} onChange={(event) => setObservaciones(event.target.value)} placeholder="Punto de encuentro, equipaje..." /></div>
