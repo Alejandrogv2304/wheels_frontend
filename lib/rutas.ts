@@ -42,3 +42,8 @@ export async function createRuta(payload: CrearRutaPayload): Promise<Ruta> {
   const response = await api.post("/rutas", payload);
   return response.data?.data ?? response.data;
 }
+
+export async function updateRuta(id: string, payload: CrearRutaPayload): Promise<Ruta> {
+  const response = await api.patch(`/rutas/${id}`, payload);
+  return response.data?.data ?? response.data;
+}

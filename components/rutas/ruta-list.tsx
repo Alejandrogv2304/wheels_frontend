@@ -1,6 +1,7 @@
 "use client";
 
-import { Route as RouteIcon, Star } from "lucide-react";
+import { Pencil, Route as RouteIcon, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { RutaResumen } from "@/lib/rutas";
@@ -11,9 +12,10 @@ interface RutaListProps {
   search: string;
   onSearchChange: (value: string) => void;
   onSelect: (id: string) => void;
+  onEdit: (id: string) => void;
 }
 
-export function RutaList({ rutas, loading, search, onSearchChange, onSelect }: RutaListProps) {
+export function RutaList({ rutas, loading, search, onSearchChange, onSelect, onEdit }: RutaListProps) {
   return (
     <Card>
       <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -30,10 +32,17 @@ export function RutaList({ rutas, loading, search, onSearchChange, onSelect }: R
         ) : (
           <div className="divide-y">
             {rutas.map((ruta) => (
-              <button key={ruta.id} type="button" onClick={() => onSelect(ruta.id)} className="flex w-full items-center justify-between gap-4 py-4 text-left transition-colors first:pt-0 last:pb-0 hover:bg-muted/50">
-                <span className="min-w-0 truncate font-medium">{ruta.nombre}</span>
-                <Star className={ruta.favorita ? "size-5 shrink-0 fill-primary text-primary" : "size-5 shrink-0 text-muted-foreground"} />
-              </button>
+              <div key={ruta.id} className="flex w-full items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
+                <button type="button" onClick={() => onSelect(ruta.id)} className="min-w-0 flex-1 truncate text-left font-medium hover:underline">
+                  {ruta.nombre}
+                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Star className={ruta.favorita ? "size-5 fill-primary text-primary" : "size-5 text-muted-foreground"} />
+                  <Button type="button" variant="ghost" size="icon-sm" title="Editar ruta" aria-label={`Editar ${ruta.nombre}`} onClick={() => onEdit(ruta.id)}>
+                    <Pencil />
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
         )}

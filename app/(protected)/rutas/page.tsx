@@ -13,6 +13,7 @@ export default function Rutas() {
   const [loading, setLoading] = useState(true);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   async function loadRutas() {
@@ -43,6 +44,11 @@ export default function Rutas() {
     }
   }
 
+  async function editRuta(id: string) {
+    await selectRuta(id);
+    setEditOpen(true);
+  }
+
   const rutasFiltradas = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
     if (!query) return rutas;
@@ -70,9 +76,21 @@ export default function Rutas() {
           search={search}
           onSearchChange={setSearch}
           onSelect={selectRuta}
+          onEdit={editRuta}
         />
         <RutaDetail ruta={rutaSeleccionada} loading={loadingDetalle} />
       </div>
+
+      <RutaCreateDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        ruta={rutaSeleccionada}
+        onCreated={async () => {
+          setEditOpen(false);
+          await loadRutas();
+          if (rutaSeleccionada) await selectRuta(rutaSeleccionada.id);
+        }}
+      />
     </div>
   );
 }
