@@ -18,6 +18,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   logout: (redirect?: boolean) => void;
+  handleOAuthCallback: (hash: string) => Promise<void>;
+  startOAuth: (provider: string) => Promise<void>;
   login: (correo: string, password: string) => Promise<boolean>;
   register: (
     nombre: string,
@@ -32,6 +34,8 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   loading: true,
   logout: () => {},
+  handleOAuthCallback: async () => {},
+  startOAuth: async () => {},
   login: async () => false,
   register: async () => false,
 });
@@ -52,6 +56,79 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     [router],
   );
+
+  const parseHash = (hash: string) => {
+    const trimmed = hash.startsWith("#") ? hash.slice(1) : hash;
+    const parts = trimmed.split("&");
+    const obj: Record<string, string> = {};
+    parts.forEach((part) => {
+      const [k, v] = part.split("=");
+      if (k) obj[k] = decodeURIComponent(v || "");
+    });
+    return obj;
+  };
+
+  const handleOAuthCallback = async (hash: string) => {
+    try {
+      const params = parseHash(hash);
+      const accessToken = params["access_token"];
+      const refreshToken = params["refresh_token"];
+
+      if (!accessToken) {
+        toast.error("No se encontró access_token en el callback OAuth");
+        return;
+      }
+
+      // Save tokens to cookies so api interceptor can use them
+      saveToken(accessToken, "access_token");
+      if (refreshToken) saveToken(refreshToken, "refresh_token");
+
+      // Try to fetch user info from backend
+      try {
+        const me = await api.get("/auth/me");
+        const fetchedUser = me.data?.user || me.data;
+        if (fetchedUser) {
+          persistSession({
+            accessToken,
+            refreshToken: refreshToken || "",
+            user: fetchedUser,
+          });
+          return;
+        }
+      } catch {
+        // If fetching user fails, continue to try to parse minimal info
+      }
+
+      // As a fallback, set a minimal user from available params if present
+      let fallbackUser = null;
+      if (params["user"]) {
+        try {
+          fallbackUser = JSON.parse(params["user"]);
+        } catch {
+          // ignore
+        }
+      }
+
+      if (fallbackUser) {
+        persistSession({
+          accessToken,
+          refreshToken: refreshToken || "",
+          user: fallbackUser,
+        });
+        router.push("/inicio");
+        return;
+      }
+
+      // If we reach here, we have tokens but couldn't hydrate a user
+      toast.success(
+        "Autenticación completada. Por favor espera mientras se finaliza la sesión.",
+      );
+      router.push("/inicio");
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Error procesando callback OAuth");
+    }
+  };
 
   useEffect(() => {
     const checkAuth = () => {
@@ -98,8 +175,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await api.post("/auth/login", { email, password });
 
       if (res.data) {
-        const { accessToken, refreshToken, user } = res.data;
-        persistSession({ accessToken, refreshToken, user });
+        const { session, profile } = res.data;
+        persistSession({
+          accessToken: session.accessToken,
+          refreshToken: session.refreshToken,
+          user: profile,
+        });
         router.push("/inicio");
         return true;
       }
@@ -110,6 +191,115 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
     }
     return false;
+  };
+
+  const startOAuth = async (provider: string) => {
+    if (typeof window === "undefined") return;
+    try {
+      const redirectTo = `${window.location.origin}/auth`;
+      const res = await api.get(`/auth/${provider}`, {
+        params: { redirectTo },
+      });
+      const url = res.data?.url;
+      if (!url) {
+        toast.error("No se recibió la URL de autenticación");
+        return;
+      }
+
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.innerWidth - width) / 2;
+      const top = window.screenY + (window.innerHeight - height) / 2;
+
+      const popup = window.open(
+        url,
+        `oauth_${provider}`,
+        `popup=yes,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`,
+      );
+
+      if (!popup) {
+        toast.error("No se pudo abrir la ventana de autenticación.");
+        return;
+      }
+
+      let handled = false;
+
+      const messageListener = async (e: MessageEvent) => {
+        if (e.origin !== window.location.origin) return;
+        if (e.data?.type === "oauth") {
+          handled = true;
+          try {
+            // If the popup sends tokens directly, save them first so api can use them
+            const accessTokenFromMsg =
+              e.data?.access_token || e.data?.accessToken || e.data?.token;
+            const refreshTokenFromMsg =
+              e.data?.refresh_token || e.data?.refreshToken;
+            if (accessTokenFromMsg) {
+              saveToken(accessTokenFromMsg, "access_token");
+              if (refreshTokenFromMsg)
+                saveToken(refreshTokenFromMsg, "refresh_token");
+            }
+
+            // Try to hydrate user from backend endpoint /users/me
+            try {
+              const me = await api.get("/users/me");
+              const fetchedUser = me.data?.user || me.data;
+
+              // backend may return accessToken inside body; prefer explicit token
+              const returnedAccess =
+                me.data?.accessToken || accessTokenFromMsg || "";
+              const returnedRefresh =
+                me.data?.refreshToken || refreshTokenFromMsg || "";
+
+              if (fetchedUser) {
+                persistSession({
+                  accessToken: returnedAccess,
+                  refreshToken: returnedRefresh,
+                  user: fetchedUser,
+                });
+                toast.success("Autenticado correctamente");
+                try {
+                  if (!popup.closed) popup.close();
+                } catch {}
+                window.removeEventListener("message", messageListener);
+                router.push("/inicio");
+                return;
+              }
+            } catch (err) {
+              // If fetching /users/me failed, continue to fallback handling below
+              console.warn("/users/me fallback failed", err);
+            }
+
+            toast.success("Autenticación completada. Finalizando sesión...");
+            try {
+              if (!popup.closed) popup.close();
+            } catch {}
+            window.removeEventListener("message", messageListener);
+            router.push("/inicio");
+          } catch (err) {
+            console.error(err);
+            toast.error("Error procesando respuesta de OAuth");
+          }
+        }
+      };
+
+      window.addEventListener("message", messageListener);
+
+      const poll = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(poll);
+          window.removeEventListener("message", messageListener);
+          if (!handled) {
+            toast.error(
+              "La ventana de autenticación se cerró sin completar el proceso.",
+            );
+          }
+        }
+      }, 500);
+    } catch (err) {
+      console.error(err);
+      toast.error("Error iniciando autenticación");
+    }
   };
 
   const register = async (
@@ -150,6 +340,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
         loading,
         logout,
+        handleOAuthCallback,
+        startOAuth,
         login,
         register,
       }}

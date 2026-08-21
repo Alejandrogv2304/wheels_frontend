@@ -138,7 +138,7 @@
   --popover: #121c17;
   --popover-foreground: #eff8f2;
 
-  --primary: #58d69d;
+  --primary: var(--uis-green);
   --primary-foreground: #06251a;
 
   --secondary: #1d2c25;
@@ -239,6 +239,27 @@ h2 {
 h3 {
   font-size: 1.25rem;
   font-weight: 600;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0.5rem 1rem;
+
+  border-radius: var(--radius);
+
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 .btn-primary {

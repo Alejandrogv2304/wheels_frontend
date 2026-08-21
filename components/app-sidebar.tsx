@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { User, Home, Settings, LogOut } from "lucide-react";
+import { Car, Home, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
 import {
   Sidebar,
@@ -32,9 +32,9 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
     icon: Home,
   },
   {
-    title: "Usuarios",
-    url: "/usuarios",
-    icon: User,
+    title: "Vehiculos",
+    url: "/vehiculos",
+    icon: Car,
   },
   {
     title: "Configuración",
@@ -64,11 +64,15 @@ export function AppSidebar() {
             <SidebarMenu className="gap-4">
               {SIDEBAR_ITEMS.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton isActive={pathname === item.url}>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
+                  <SidebarMenuButton
+                    render={<Link href={item.url} />}
+                    isActive={
+                      pathname === item.url || pathname.startsWith(`${item.url}/`)
+                    }
+                    className="data-active:bg-primary data-active:text-primary-foreground data-active:hover:bg-primary/90"
+                  >
+                    <item.icon />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
