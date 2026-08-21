@@ -52,7 +52,9 @@ export default function Rutas() {
   const rutasFiltradas = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
     if (!query) return rutas;
-    return rutas.filter((ruta) => ruta.nombre.toLocaleLowerCase().includes(query));
+    return rutas.filter((ruta) =>
+      ruta.nombre.toLocaleLowerCase().includes(query),
+    );
   }, [rutas, search]);
 
   return (
@@ -81,16 +83,18 @@ export default function Rutas() {
         <RutaDetail ruta={rutaSeleccionada} loading={loadingDetalle} />
       </div>
 
-      <RutaCreateDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        ruta={rutaSeleccionada}
-        onCreated={async () => {
-          setEditOpen(false);
-          await loadRutas();
-          if (rutaSeleccionada) await selectRuta(rutaSeleccionada.id);
-        }}
-      />
+      {editOpen && (
+        <RutaCreateDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          ruta={rutaSeleccionada}
+          onCreated={async () => {
+            setEditOpen(false);
+            await loadRutas();
+            if (rutaSeleccionada) await selectRuta(rutaSeleccionada.id);
+          }}
+        />
+      )}
     </div>
   );
 }
