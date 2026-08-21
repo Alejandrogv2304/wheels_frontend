@@ -23,10 +23,13 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 import {
   getCatalogo,
   getVehiculos,
   createVehiculo,
+  deleteVehiculo,
   postCatalogo,
 } from "@/lib/vehiculos";
 import { toast } from "sonner";
@@ -49,6 +52,8 @@ export default function Vehiculos() {
   const [referencias, setReferencias] = useState<string[]>([]);
   const [loadingCatalogo, setLoadingCatalogo] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState<any | null>(null);
+  const [deletingVehicle, setDeletingVehicle] = useState(false);
 
   useEffect(() => {
     loadVehiculos();
@@ -161,6 +166,27 @@ export default function Vehiculos() {
     }
   }
 
+  async function handleDeleteVehiculo() {
+    const vehicleId = vehicleToDelete?.id ?? vehicleToDelete?._id;
+    if (!vehicleId) {
+      toast.error("No se encontró el identificador del vehículo");
+      return;
+    }
+
+    try {
+      setDeletingVehicle(true);
+      await deleteVehiculo(vehicleId);
+      toast.success("Vehículo eliminado correctamente");
+      setVehicleToDelete(null);
+      await loadVehiculos();
+    } catch (err) {
+      console.error(err);
+      toast.error("Error eliminando vehículo");
+    } finally {
+      setDeletingVehicle(false);
+    }
+  }
+
   const columns = useMemo(
     () => [
       { key: "marca", header: "Marca", sortable: true },
@@ -169,6 +195,23 @@ export default function Vehiculos() {
       { key: "tipo", header: "Tipo" },
       { key: "color", header: "Color" },
       { key: "capacidad", header: "Capacidad" },
+      {
+        key: "acciones",
+        header: "Acciones",
+        cellClassName: "w-20 text-right",
+        render: (_value: unknown, row: any) => (
+          <Button
+            type="button"
+            variant="destructive"
+            size="icon"
+            aria-label={`Eliminar ${row.marca} ${row.referencia}`}
+            title="Eliminar vehículo"
+            onClick={() => setVehicleToDelete(row)}
+          >
+            <Trash2 />
+          </Button>
+        ),
+      },
     ],
     [],
   );
@@ -223,7 +266,7 @@ export default function Vehiculos() {
                 <Select
                   value={marca ?? ""}
                   onValueChange={(v: any) => handleMarcaChange(v)}
-                  disabled={!tipo}
+                  disabled={!tipo || loadingCatalogo}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -320,6 +363,36 @@ export default function Vehiculos() {
           />
         </CardContent>
       </Card>
+
+      <AlertDialog
+        open={Boolean(vehicleToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !deletingVehicle) setVehicleToDelete(null);
+        }}
+      >
+        <AlertDialogContent size="default">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar vehículo</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar {vehicleToDelete?.marca}{" "}
+              {vehicleToDelete?.referencia} con placa {vehicleToDelete?.placa}?
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingVehicle}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteVehiculo}
+              disabled={deletingVehicle}
+              variant="destructive"
+            >
+              {deletingVehicle ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -37,3 +37,8 @@ export async function createVehiculo(v: Vehiculo) {
   const res = await api.post('/vehiculo', v)
   return res.data
 }
+
+export async function deleteVehiculo(id: string | number) {
+  const res = await api.post(`/vehiculo/${id}/eliminar`)
+  return res.data
+}
