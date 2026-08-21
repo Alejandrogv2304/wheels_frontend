@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, Car, MapPin, Users } from "lucide-react";
+import { Bike, CalendarClock, CarFront, MapPin, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Viaje } from "@/lib/viajes";
 
@@ -17,6 +17,10 @@ function formatDate(value: string) {
 }
 
 export function ViajeDetail({ viaje, loading }: ViajeDetailProps) {
+  const VehicleIcon = viaje?.vehiculo?.tipo.toLowerCase().includes("moto")
+    ? Bike
+    : CarFront;
+
   return (
     <Card>
       <CardHeader>
@@ -47,8 +51,8 @@ export function ViajeDetail({ viaje, loading }: ViajeDetailProps) {
               </p>
               {viaje.vehiculo && (
                 <p className="flex items-center gap-2">
-                  <Car className="size-4 text-primary" />
-                  {viaje.vehiculo.marca} {viaje.vehiculo.referencia} (
+                  <VehicleIcon className="size-4 text-primary" />
+                  {viaje.vehiculo.marca} {viaje.vehiculo.referencia} - (
                   {viaje.vehiculo.tipo})
                 </p>
               )}
@@ -62,36 +66,36 @@ export function ViajeDetail({ viaje, loading }: ViajeDetailProps) {
                     const isEnd = index === puntos.length - 1;
                     const isMiddle = index > 0 && !isEnd;
                     return (
-                    <p
-                      key={punto.id ?? punto.orden}
-                      className="relative flex gap-3 pb-2 last:pb-0"
-                    >
-                      {!isEnd && (
-                        <span
-                          aria-hidden="true"
-                          className="absolute left-3 top-7 bottom-0 border-l-2 border-dotted border-muted-foreground/40"
-                        />
-                      )}
-                      <span
-                        className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${isMiddle ? "border border-primary bg-background text-primary" : "bg-primary text-primary-foreground"}`}
+                      <p
+                        key={punto.id ?? punto.orden}
+                        className="relative flex gap-3 pb-2 last:pb-0"
                       >
-                        {isEnd ? "L" : index === 0 ? "S" : punto.orden}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block font-medium">
-                          {index === 0
-                            ? "Salida: "
-                            : isEnd
-                              ? "Llegada: "
-                              : "Punto: "}
-                          {punto.nombre}
+                        {!isEnd && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute left-3 top-7 bottom-0 border-l-2 border-dotted border-muted-foreground/40"
+                          />
+                        )}
+                        <span
+                          className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${isMiddle ? "border border-primary bg-background text-primary" : "bg-primary text-primary-foreground"}`}
+                        >
+                          {isEnd ? "L" : index === 0 ? "S" : punto.orden}
                         </span>
-                        <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <MapPin className="size-3" />
-                          {punto.direccion}
+                        <span className="min-w-0">
+                          <span className="block font-medium">
+                            {index === 0
+                              ? "Salida: "
+                              : isEnd
+                                ? "Llegada: "
+                                : "Punto: "}
+                            {punto.nombre}
+                          </span>
+                          <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <MapPin className="size-3" />
+                            {punto.direccion}
+                          </span>
                         </span>
-                      </span>
-                    </p>
+                      </p>
                     );
                   })}
               </div>

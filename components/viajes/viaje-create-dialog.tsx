@@ -35,7 +35,11 @@ interface ViajeCreateDialogProps {
   onCreated: () => void;
 }
 
-export function ViajeCreateDialog({ open, onOpenChange, onCreated }: ViajeCreateDialogProps) {
+export function ViajeCreateDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: ViajeCreateDialogProps) {
   const [rutas, setRutas] = useState<RutaResumen[]>([]);
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const [rutaId, setRutaId] = useState("");
@@ -45,6 +49,8 @@ export function ViajeCreateDialog({ open, onOpenChange, onCreated }: ViajeCreate
   const [observaciones, setObservaciones] = useState("");
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const selectedRuta = rutas.find((ruta) => String(ruta.id) === rutaId);
 
   const selectedVehicle = vehiculos.find(
     (vehiculo) => String(vehiculo.id) === vehiculoId,
@@ -77,7 +83,7 @@ export function ViajeCreateDialog({ open, onOpenChange, onCreated }: ViajeCreate
         if (cancelled) return;
         const vehicles = Array.isArray(vehiculosResponse)
           ? vehiculosResponse
-          : vehiculosResponse?.data ?? [];
+          : (vehiculosResponse?.data ?? []);
         setRutas(rutasResponse);
         setVehiculos(vehicles);
         setFechaSalida(getNextFullHour());
@@ -136,7 +142,10 @@ export function ViajeCreateDialog({ open, onOpenChange, onCreated }: ViajeCreate
       <AlertDialogTrigger render={<Button />}>
         <Plus /> Nuevo viaje
       </AlertDialogTrigger>
-      <AlertDialogContent size="default" className="max-h-[90vh] overflow-y-auto">
+      <AlertDialogContent
+        size="default"
+        className="max-h-[90vh] overflow-y-auto"
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>Nuevo viaje</AlertDialogTitle>
           <AlertDialogDescription>
@@ -146,31 +155,106 @@ export function ViajeCreateDialog({ open, onOpenChange, onCreated }: ViajeCreate
         <form onSubmit={submit} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="viaje-ruta">Ruta</Label>
-            <Select value={rutaId} onValueChange={(value) => setRutaId(value ?? "")} disabled={loadingOptions}>
-              <SelectTrigger id="viaje-ruta" className="w-full"><SelectValue placeholder="Selecciona una ruta" /></SelectTrigger>
+            <Select
+              value={rutaId}
+              onValueChange={(value) => setRutaId(value ?? "")}
+              disabled={loadingOptions}
+            >
+              <SelectTrigger id="viaje-ruta" className="w-full">
+                <SelectValue placeholder="Selecciona una ruta">
+                  {selectedRuta?.nombre}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
-                {rutas.map((ruta) => <SelectItem key={ruta.id} value={ruta.id}>{ruta.nombre}</SelectItem>)}
+                {rutas.map((ruta) => (
+                  <SelectItem key={String(ruta.id)} value={String(ruta.id)}>
+                    {ruta.nombre}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="viaje-vehiculo">Vehículo</Label>
-            <Select value={vehiculoId} onValueChange={(value) => setVehiculoId(value ?? "")} disabled={loadingOptions}>
-              <SelectTrigger id="viaje-vehiculo" className="w-full"><SelectValue placeholder="Selecciona un vehículo" /></SelectTrigger>
+            <Select
+              value={vehiculoId}
+              onValueChange={(value) => setVehiculoId(value ?? "")}
+              disabled={loadingOptions}
+            >
+              <SelectTrigger id="viaje-vehiculo" className="w-full">
+                <SelectValue placeholder="Selecciona un vehículo">
+                  {selectedVehicle
+                    ? `${selectedVehicle.marca} ${selectedVehicle.referencia} ${selectedVehicle.placa ? `- ${selectedVehicle.placa}` : ""}`
+                    : undefined}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
-                {vehiculos.map((vehiculo) => <SelectItem key={String(vehiculo.id)} value={String(vehiculo.id)}>{vehiculo.marca} {vehiculo.referencia} {vehiculo.placa ? `- ${vehiculo.placa}` : ""}</SelectItem>)}
+                {vehiculos.map((vehiculo) => {
+                  const idStr = String(vehiculo.id);
+                  const label = `${vehiculo.marca} ${vehiculo.referencia} ${vehiculo.placa ? `- ${vehiculo.placa}` : ""}`;
+
+                  return (
+                    <SelectItem key={idStr} value={idStr}>
+                      {label}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2"><Label htmlFor="viaje-precio">Precio por cupo</Label><Input id="viaje-precio" type="number" min="0" step="1" value={precio} onChange={(event) => setPrecio(event.target.value)} required /></div>
-            <div className="grid gap-2"><Label htmlFor="viaje-cupos">Cupos disponibles</Label><Input id="viaje-cupos" type="number" min="1" step="1" value={calculatedCupos ?? ""} readOnly required /><p className="text-xs text-muted-foreground">Capacidad del vehículo menos el asiento del conductor.</p></div>
+            <div className="grid gap-2">
+              <Label htmlFor="viaje-precio">Precio por cupo</Label>
+              <Input
+                id="viaje-precio"
+                type="number"
+                min="0"
+                step="1"
+                value={precio}
+                onChange={(event) => setPrecio(event.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="viaje-cupos">Cupos disponibles</Label>
+              <Input
+                id="viaje-cupos"
+                type="number"
+                min="1"
+                step="1"
+                value={calculatedCupos ?? ""}
+                readOnly
+                required
+              />
+            </div>
           </div>
-          <div className="grid gap-2"><Label htmlFor="viaje-fecha">Fecha y hora de salida</Label><Input id="viaje-fecha" type="datetime-local" value={fechaSalida} onChange={(event) => setFechaSalida(event.target.value)} required /></div>
-          <div className="grid gap-2"><Label htmlFor="viaje-observaciones">Observaciones</Label><Textarea id="viaje-observaciones" value={observaciones} onChange={(event) => setObservaciones(event.target.value)} placeholder="Punto de encuentro, equipaje..." /></div>
+          <div className="grid gap-2">
+            <Label htmlFor="viaje-fecha">Fecha y hora de salida</Label>
+            <Input
+              id="viaje-fecha"
+              type="datetime-local"
+              value={fechaSalida}
+              onChange={(event) => setFechaSalida(event.target.value)}
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="viaje-observaciones">Observaciones</Label>
+            <Textarea
+              id="viaje-observaciones"
+              value={observaciones}
+              onChange={(event) => setObservaciones(event.target.value)}
+              placeholder="Punto de encuentro, equipaje..."
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction type="submit" disabled={saving || loadingOptions}>{saving ? "Creando..." : "Crear viaje"}</AlertDialogAction>
+            <AlertDialogAction
+              type="submit"
+              disabled={saving || loadingOptions}
+            >
+              {saving ? "Creando..." : "Crear viaje"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </form>
       </AlertDialogContent>
