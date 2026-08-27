@@ -101,7 +101,6 @@ export function RutaForm({ onCreated, onCancel, footer, ruta }: RutaFormProps) {
       onCreated();
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo guardar la ruta");
     } finally {
       setSaving(false);
     }

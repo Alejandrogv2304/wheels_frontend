@@ -23,9 +23,12 @@ import {
 import {
   getViaje,
   getViajes,
+  reservarViaje,
+  cancelarReserva,
   type Viaje,
   type ViajesMeta,
 } from "@/lib/viajes";
+import { Button } from "@/components/ui/button";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("es-CO", {
@@ -38,7 +41,19 @@ function formatPrice(value: number | string) {
   return `$${Number(value).toLocaleString("es-CO")}`;
 }
 
-function ViajeExpandedDetail({ viaje }: { viaje: Viaje }) {
+function ViajeExpandedDetail({
+  viaje,
+  reservaId,
+  reservando,
+  onReserve,
+  onCancel,
+}: {
+  viaje: Viaje;
+  reservaId?: string;
+  reservando: boolean;
+  onReserve: () => void;
+  onCancel: () => void;
+}) {
   const puntos = [...(viaje.ruta?.puntos ?? [])].sort(
     (a, b) => a.orden - b.orden,
   );
@@ -114,6 +129,33 @@ function ViajeExpandedDetail({ viaje }: { viaje: Viaje }) {
           {viaje.observaciones}
         </p>
       )}
+      <div className="flex flex-wrap flex-col md:flex-row items-center justify-between gap-3 border-t pt-4">
+        <p className="text-sm text-muted-foreground">
+          {reservaId
+            ? "Tienes un cupo reservado en este viaje."
+            : "Reserva un cupo para este viaje."}
+        </p>
+        {reservaId ? (
+          <Button
+            className="w-full"
+            type="button"
+            variant="destructive"
+            onClick={onCancel}
+            disabled={reservando}
+          >
+            {reservando ? "Cancelando..." : "Cancelar reserva"}
+          </Button>
+        ) : (
+          <Button
+            className="w-full"
+            type="button"
+            onClick={onReserve}
+            disabled={reservando || viaje.cupos < 1}
+          >
+            {reservando ? "Reservando..." : "Reservar cupo"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -126,6 +168,10 @@ export default function Inicio() {
   const [loading, setLoading] = useState(true);
   const [detalles, setDetalles] = useState<Record<string, Viaje>>({});
   const [detalleCargando, setDetalleCargando] = useState<string | null>(null);
+  const [reservas, setReservas] = useState<Record<string, string>>({});
+  const [reservaProcesando, setReservaProcesando] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     async function loadViajes() {
@@ -136,7 +182,6 @@ export default function Inicio() {
         setMeta(response.meta);
       } catch (error) {
         console.error(error);
-        toast.error("No se pudieron cargar los viajes disponibles");
       } finally {
         setLoading(false);
       }
@@ -181,9 +226,54 @@ export default function Inicio() {
       setDetalles((current) => ({ ...current, [id]: detalle }));
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo cargar el trayecto del viaje");
     } finally {
       setDetalleCargando(null);
+    }
+  }
+
+  function getReservaId(viaje: Viaje) {
+    return reservas[viaje.id] ?? viaje.reservaId ?? viaje.reserva?.id;
+  }
+
+  async function handleReserve(viajeId: string) {
+    try {
+      setReservaProcesando(viajeId);
+      const reserva = await reservarViaje(viajeId);
+      setReservas((current) => ({ ...current, [viajeId]: reserva.id }));
+      setViajes((current) =>
+        current.map((viaje) =>
+          viaje.id === viajeId
+            ? { ...viaje, cupos: Math.max(0, viaje.cupos - 1) }
+            : viaje,
+        ),
+      );
+      toast.success("Cupo reservado correctamente");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setReservaProcesando(null);
+    }
+  }
+
+  async function handleCancel(viajeId: string, reservaId: string) {
+    try {
+      setReservaProcesando(viajeId);
+      await cancelarReserva(reservaId);
+      setReservas((current) => {
+        const next = { ...current };
+        delete next[viajeId];
+        return next;
+      });
+      setViajes((current) =>
+        current.map((viaje) =>
+          viaje.id === viajeId ? { ...viaje, cupos: viaje.cupos + 1 } : viaje,
+        ),
+      );
+      toast.success("Reserva cancelada correctamente");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setReservaProcesando(null);
     }
   }
 
@@ -289,7 +379,16 @@ export default function Inicio() {
                   Cargando puntos del trayecto...
                 </div>
               ) : (
-                <ViajeExpandedDetail viaje={detalles[viaje.id] ?? viaje} />
+                <ViajeExpandedDetail
+                  viaje={detalles[viaje.id] ?? viaje}
+                  reservaId={getReservaId(detalles[viaje.id] ?? viaje)}
+                  reservando={reservaProcesando === viaje.id}
+                  onReserve={() => void handleReserve(viaje.id)}
+                  onCancel={() => {
+                    const reservaId = getReservaId(detalles[viaje.id] ?? viaje);
+                    if (reservaId) void handleCancel(viaje.id, reservaId);
+                  }}
+                />
               )}
             </details>
           ))}

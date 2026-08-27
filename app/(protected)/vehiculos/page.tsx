@@ -32,7 +32,6 @@ export default function Vehiculos() {
       setVehiculos(Array.isArray(response) ? response : response.data || []);
     } catch (error) {
       console.error(error);
-      toast.error("Error obteniendo vehículos");
     } finally {
       setLoadingVehiculos(false);
     }
@@ -45,7 +44,6 @@ export default function Vehiculos() {
   async function handleDeleteVehiculo() {
     const vehicleId = vehicleToDelete?.id ?? vehicleToDelete?._id;
     if (!vehicleId) {
-      toast.error("No se encontró el identificador del vehículo");
       return;
     }
 
@@ -57,7 +55,6 @@ export default function Vehiculos() {
       await loadVehiculos();
     } catch (error) {
       console.error(error);
-      toast.error("Error eliminando vehículo");
     } finally {
       setDeletingVehicle(false);
     }

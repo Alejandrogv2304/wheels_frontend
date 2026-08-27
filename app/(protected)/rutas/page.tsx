@@ -22,7 +22,6 @@ export default function Rutas() {
       setRutas(await getRutas());
     } catch (error) {
       console.error(error);
-      toast.error("No se pudieron cargar las rutas");
     } finally {
       setLoading(false);
     }
@@ -38,7 +37,6 @@ export default function Rutas() {
       setRutaSeleccionada(await getRuta(id));
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo cargar el detalle de la ruta");
     } finally {
       setLoadingDetalle(false);
     }

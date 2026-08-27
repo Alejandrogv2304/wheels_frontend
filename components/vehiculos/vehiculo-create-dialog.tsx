@@ -80,7 +80,6 @@ export function VehiculoCreateDialog({
       );
     } catch (error) {
       console.error(error);
-      toast.error("Error obteniendo catálogo");
     } finally {
       setLoadingCatalogo(false);
     }
@@ -144,7 +143,6 @@ export function VehiculoCreateDialog({
       onCreated();
     } catch (error) {
       console.error(error);
-      toast.error("Error creando vehículo");
     } finally {
       setSaving(false);
     }

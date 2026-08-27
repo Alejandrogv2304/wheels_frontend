@@ -25,7 +25,6 @@ export default function Viajes() {
         setViajes(await getViajesConductor(String(user.id)));
       } catch (error) {
         console.error(error);
-        toast.error("No se pudieron cargar tus viajes");
       } finally {
         setLoading(false);
       }
@@ -40,7 +39,6 @@ export default function Viajes() {
       setViajes(await getViajesConductor(String(user.id)));
     } catch (error) {
       console.error(error);
-      toast.error("No se pudieron cargar tus viajes");
     } finally {
       setLoading(false);
     }
@@ -52,7 +50,6 @@ export default function Viajes() {
       setViajeSeleccionado(await getViaje(id));
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo cargar el detalle del viaje");
     } finally {
       setLoadingDetalle(false);
     }

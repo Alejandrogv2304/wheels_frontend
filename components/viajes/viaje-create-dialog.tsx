@@ -89,7 +89,6 @@ export function ViajeCreateDialog({
         setFechaSalida(getNextFullHour());
       } catch (error) {
         console.error(error);
-        toast.error("No se pudieron cargar rutas y vehículos");
       } finally {
         if (!cancelled) setLoadingOptions(false);
       }
@@ -131,7 +130,6 @@ export function ViajeCreateDialog({
       onCreated();
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo crear el viaje");
     } finally {
       setSaving(false);
     }
