@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { FormEvent, ReactNode, useState } from "react";
+import { FormEvent, ReactElement, useState } from "react";
 import { Camera, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 
 interface ProfileEditDialogProps {
-  trigger?: ReactNode;
+  trigger?: ReactElement;
 }
 
 export function ProfileEditDialog({ trigger }: ProfileEditDialogProps) {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { getRuta, getRutas, Ruta, RutaResumen } from "@/lib/rutas";
 import { RutaCreateDialog } from "@/components/rutas/ruta-create-dialog";
 import { RutaDetail } from "@/components/rutas/ruta-detail";
