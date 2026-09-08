@@ -4,7 +4,7 @@ export function saveToken(token: string, key: string) {
   try {
     const maxAge = key === "refresh_token" ? 24 * 60 * 60 : 4 * 60 * 60; // 1 día para refresh, 4 horas para access
 
-    document.cookie = `${key}=${token}; path=/; max-age=${maxAge}; samesite=lax`;
+    document.cookie = `${key}=${encodeURIComponent(token)}; path=/; max-age=${maxAge}; samesite=lax`;
   } catch (err) {
     console.error("Error guardando token:", err);
   }
@@ -18,7 +18,8 @@ export function getToken(key: string): string | null {
     const cookie = cookies.find((c) => c.trim().startsWith(`${key}=`));
 
     if (cookie) {
-      return cookie.split("=")[1];
+      const value = cookie.slice(cookie.indexOf("=") + 1);
+      return decodeURIComponent(value);
     }
     return null;
   } catch (err) {

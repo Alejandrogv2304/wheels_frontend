@@ -21,6 +21,13 @@ interface AuthContextType {
   handleOAuthCallback: (hash: string) => Promise<void>;
   startOAuth: (provider: string) => Promise<void>;
   login: (correo: string, password: string) => Promise<boolean>;
+  updateProfile: (data: {
+    nombre: string;
+    telefono: string;
+    tipoDocumento: string;
+    numeroDocumento: string;
+    foto?: File;
+  }) => Promise<boolean>;
   register: (
     nombre: string,
     correo: string,
@@ -37,6 +44,7 @@ const AuthContext = createContext<AuthContextType>({
   handleOAuthCallback: async () => {},
   startOAuth: async () => {},
   login: async () => false,
+  updateProfile: async () => false,
   register: async () => false,
 });
 
@@ -85,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Try to fetch user info from backend
       try {
-        const me = await api.get("/auth/me");
+        const me = await api.get("/users/me");
         const fetchedUser = me.data?.user || me.data;
         if (fetchedUser) {
           persistSession({
@@ -131,22 +139,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
         const accessToken = getToken("access_token");
         const userCookie = getToken("user");
 
-        if (!accessToken || !userCookie) {
+        if (!accessToken) {
           setUser(null);
           return;
         }
 
+        if (userCookie) {
+          try {
+            setUser(JSON.parse(decodeURIComponent(userCookie)));
+            return;
+          } catch {
+            removeToken("user");
+          }
+        }
+
         try {
-          const parsedUser = JSON.parse(userCookie);
-          setUser(parsedUser);
-        } catch {
+          const me = await api.get("/users/me");
+          const fetchedUser = me.data?.user || me.data;
+          if (!fetchedUser) throw new Error("El endpoint /users/me no devolvió usuario");
+
+          saveToken(JSON.stringify(fetchedUser), "user");
+          setUser(fetchedUser);
+        } catch (error) {
+          console.error("No se pudo hidratar la sesión:", error);
           setUser(null);
-          removeToken("user");
         }
       } catch (error) {
         toast.error("Error verificando autenticación: " + error);
@@ -191,6 +212,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
     }
     return false;
+  };
+
+  const updateProfile = async (data: {
+    nombre: string;
+    telefono: string;
+    tipoDocumento: string;
+    numeroDocumento: string;
+    foto?: File;
+  }) => {
+    try {
+      const formData = new FormData();
+      formData.append("nombre", data.nombre);
+      formData.append("telefono", data.telefono);
+      formData.append("tipoDocumento", data.tipoDocumento);
+      formData.append("numeroDocumento", data.numeroDocumento);
+      if (data.foto) formData.append("foto", data.foto);
+
+      const response = await api.patch("/users/me", formData);
+      const updatedUser = response.data?.profile || response.data?.user || response.data;
+      if (!updatedUser) throw new Error("El endpoint /users/me no devolvió el perfil actualizado");
+
+      const nextUser = { ...user, ...updatedUser } as User;
+      saveToken(JSON.stringify(nextUser), "user");
+      setUser(nextUser);
+      toast.success("Perfil actualizado correctamente");
+      return true;
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "No se pudo actualizar el perfil.",
+      );
+      return false;
+    }
   };
 
   const startOAuth = async (provider: string) => {
@@ -343,6 +396,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         handleOAuthCallback,
         startOAuth,
         login,
+        updateProfile,
         register,
       }}
     >
