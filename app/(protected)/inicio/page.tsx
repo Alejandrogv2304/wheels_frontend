@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import {
   Bike,
   CalendarClock,
@@ -11,6 +12,8 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { ProfileEditDialog } from "@/components/profile-edit-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -161,6 +164,7 @@ function ViajeExpandedDetail({
 }
 
 export default function Inicio() {
+  const { user } = useAuth();
   const [viajes, setViajes] = useState<Viaje[]>([]);
   const [meta, setMeta] = useState<ViajesMeta | null>(null);
   const [search, setSearch] = useState("");
@@ -279,14 +283,33 @@ export default function Inicio() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div>
-        <p className="text-sm font-medium text-primary">Panel de movilidad</p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Viajes disponibles
-        </h1>
-        <p className="text-muted-foreground">
-          Consulta salidas de la comunidad y encuentra un trayecto conveniente.
-        </p>
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
+          {user?.foto ? (
+            <Image
+              src={user.foto}
+              alt={`Foto de ${user.nombre}`}
+              width={48}
+              height={48}
+              unoptimized
+              className="size-12 rounded-full object-cover ring-2 ring-primary/20"
+            />
+          ) : (
+            <div className="flex size-12 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
+              {(user?.nombre || "U").charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <p className="text-sm font-medium text-primary">Panel de movilidad</p>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              Hola, {user?.nombre || "viajero"}
+            </h1>
+            <p className="text-muted-foreground">
+              Consulta salidas de la comunidad y encuentra un trayecto conveniente.
+            </p>
+          </div>
+        </div>
+        <ProfileEditDialog />
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[

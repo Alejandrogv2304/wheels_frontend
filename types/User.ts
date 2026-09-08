@@ -1,14 +1,14 @@
 interface User {
-  id: number;
-  name: string;
-  email: string;
+  id: string;
+  nombre: string;
+  correo: string;
   telefono?: string;
   estado?: string;
   foto?: string;
-  tipo_documento?: string;
-  numero_documento?: number;
+  tipoDocumento?: string;
+  numeroDocumento?: string;
   calificacion?: number;
-  fecha_creacion?: Date;
+  fechaCreacion?: string;
 }
 
 export type { User };

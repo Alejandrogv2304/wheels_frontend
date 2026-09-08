@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Car, Road, Route, Home, Settings, LogOut } from "lucide-react";
+import { Car, Road, Route, Home, LogOut } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Sidebar,
@@ -17,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/AuthContext";
+import { ProfileEditDialog } from "@/components/profile-edit-dialog";
 
 type SidebarItem = {
   title: string;
@@ -45,11 +47,6 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
     title: "Vehiculos",
     url: "/vehiculos",
     icon: Car,
-  },
-  {
-    title: "Configuración",
-    url: "/configuracion",
-    icon: Settings,
   },
 ];
 
@@ -95,7 +92,34 @@ export function AppSidebar() {
       <SidebarFooter>
         <Separator className="my-2" />
 
-        <p className="text-sm font-medium text-center">{user?.name}</p>
+        <ProfileEditDialog
+          trigger={
+            <Button
+              variant="ghost"
+              className="h-auto w-full justify-start gap-3 border-0 bg-transparent px-2 py-2 text-muted-foreground shadow-none hover:bg-transparent hover:text-foreground"
+            >
+              {user?.foto ? (
+                <Image
+                  src={user.foto}
+                  alt={`Foto de ${user.nombre}`}
+                  width={40}
+                  height={40}
+                  unoptimized
+                  className="size-10 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex size-10 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground ring-1 ring-border">
+                  {(user?.nombre || "U").charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="min-w-0 flex-1 text-left">
+                <span className="block truncate text-sm font-medium">
+                  {user?.nombre || "Mi perfil"}
+                </span>
+              </span>
+            </Button>
+          }
+        />
 
         <Button onClick={handleLogout} variant="destructive">
           <LogOut className="h-5 w-5" />
