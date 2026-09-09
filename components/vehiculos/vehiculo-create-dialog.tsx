@@ -175,7 +175,7 @@ export function VehiculoCreateDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="automovil">Carro</SelectItem>
+                <SelectItem value="carro">Carro</SelectItem>
                 <SelectItem value="moto">Moto</SelectItem>
               </SelectContent>
             </Select>
