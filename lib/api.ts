@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { toast } from 'sonner'
 import { getToken } from '@/lib/cookie-storage'
+import { requestLoader } from '@/lib/request-loader'
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000/api',
@@ -9,6 +10,7 @@ const api = axios.create({
 // Interceptor para añadir token a cada request
 api.interceptors.request.use(
   (config) => {
+    requestLoader.start()
     const token = getToken('access_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -20,8 +22,12 @@ api.interceptors.request.use(
 
 // Interceptor para manejar respuestas y errores
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    requestLoader.finish()
+    return response
+  },
   async (error) => {
+    requestLoader.finish()
     const status = error.response?.status
     const message =
       error.response?.data?.message ||

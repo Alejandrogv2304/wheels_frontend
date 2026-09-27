@@ -101,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             refreshToken: refreshToken || "",
             user: fetchedUser,
           });
+          router.replace("/inicio");
           return;
         }
       } catch {
@@ -123,15 +124,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           refreshToken: refreshToken || "",
           user: fallbackUser,
         });
-        router.push("/inicio");
+        router.replace("/inicio");
         return;
       }
 
-      // If we reach here, we have tokens but couldn't hydrate a user
-      toast.success(
-        "Autenticación completada. Por favor espera mientras se finaliza la sesión.",
-      );
-      router.push("/inicio");
+      removeToken("access_token");
+      removeToken("refresh_token");
+      toast.error("No se pudo cargar tu perfil después de iniciar sesión con Google.");
     } catch (e: any) {
       console.error(e);
       toast.error("Error procesando callback OAuth");
@@ -259,96 +258,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const width = 600;
-      const height = 700;
-      const left = window.screenX + (window.innerWidth - width) / 2;
-      const top = window.screenY + (window.innerHeight - height) / 2;
-
-      const popup = window.open(
-        url,
-        `oauth_${provider}`,
-        `popup=yes,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`,
-      );
-
-      if (!popup) {
-        toast.error("No se pudo abrir la ventana de autenticación.");
-        return;
-      }
-
-      let handled = false;
-
-      const messageListener = async (e: MessageEvent) => {
-        if (e.origin !== window.location.origin) return;
-        if (e.data?.type === "oauth") {
-          handled = true;
-          try {
-            // If the popup sends tokens directly, save them first so api can use them
-            const accessTokenFromMsg =
-              e.data?.access_token || e.data?.accessToken || e.data?.token;
-            const refreshTokenFromMsg =
-              e.data?.refresh_token || e.data?.refreshToken;
-            if (accessTokenFromMsg) {
-              saveToken(accessTokenFromMsg, "access_token");
-              if (refreshTokenFromMsg)
-                saveToken(refreshTokenFromMsg, "refresh_token");
-            }
-
-            // Try to hydrate user from backend endpoint /users/me
-            try {
-              const me = await api.get("/users/me");
-              const fetchedUser = me.data?.user || me.data;
-
-              // backend may return accessToken inside body; prefer explicit token
-              const returnedAccess =
-                me.data?.accessToken || accessTokenFromMsg || "";
-              const returnedRefresh =
-                me.data?.refreshToken || refreshTokenFromMsg || "";
-
-              if (fetchedUser) {
-                persistSession({
-                  accessToken: returnedAccess,
-                  refreshToken: returnedRefresh,
-                  user: fetchedUser,
-                });
-                toast.success("Autenticado correctamente");
-                try {
-                  if (!popup.closed) popup.close();
-                } catch {}
-                window.removeEventListener("message", messageListener);
-                router.push("/inicio");
-                return;
-              }
-            } catch (err) {
-              // If fetching /users/me failed, continue to fallback handling below
-              console.warn("/users/me fallback failed", err);
-            }
-
-            toast.success("Autenticación completada. Finalizando sesión...");
-            try {
-              if (!popup.closed) popup.close();
-            } catch {}
-            window.removeEventListener("message", messageListener);
-            router.push("/inicio");
-          } catch (err) {
-            console.error(err);
-            toast.error("Error procesando respuesta de OAuth");
-          }
-        }
-      };
-
-      window.addEventListener("message", messageListener);
-
-      const poll = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(poll);
-          window.removeEventListener("message", messageListener);
-          if (!handled) {
-            toast.error(
-              "La ventana de autenticación se cerró sin completar el proceso.",
-            );
-          }
-        }
-      }, 500);
+      window.location.assign(url);
     } catch (err) {
       console.error(err);
       toast.error("Error iniciando autenticación");

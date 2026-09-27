@@ -2,7 +2,7 @@
 
 import { FormEvent, useState, Suspense, useEffect } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { CheckCircle2, MapPin, Users } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -45,50 +45,22 @@ function AuthForm() {
   const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash) return;
 
-    // If opened as an OAuth popup, process callback via context, notify opener and close.
-    if (window.opener && window.opener !== window) {
-      const hash = window.location.hash;
-      (async () => {
-        if (hash) {
-          try {
-            await handleOAuthCallback(hash);
-          } catch {
-            // ignore
-          }
-        }
-
-        try {
-          window.opener.postMessage(
-            { type: "oauth", provider: "google" },
-            window.location.origin,
-          );
-        } catch {
-          // ignore
-        }
-
-        window.close();
-      })();
-    }
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${window.location.search}`,
+    );
+    void handleOAuthCallback(hash);
   }, [handleOAuthCallback]);
-
-  // Listen for oauth messages from popup and navigate to home when received
-  useEffect(() => {
-    const onMessage = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin) return;
-      if (e.data?.type === "oauth") {
-        router.replace("/inicio");
-      }
-    };
-
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [router]);
 
   // Cambiar de modo actualizando el parámetro en la URL
   const handleModeChange = (newMode: "login" | "register") => {
@@ -203,14 +175,30 @@ function AuthForm() {
 
                   <div className="grid gap-2">
                     <Label htmlFor="password">Contraseña</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      placeholder="********"
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        placeholder="********"
+                        className="pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        aria-pressed={showPassword}
+                        onClick={() => setShowPassword((visible) => !visible)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {mode === "register" && (
@@ -218,16 +206,34 @@ function AuthForm() {
                       <Label htmlFor="confirmPassword">
                         Confirmar contraseña
                       </Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(event) =>
-                          setConfirmPassword(event.target.value)
-                        }
-                        placeholder="********"
-                        required
-                      />
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(event) =>
+                            setConfirmPassword(event.target.value)
+                          }
+                          placeholder="********"
+                          className="pr-10"
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
+                          aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                          aria-pressed={showConfirmPassword}
+                          onClick={() =>
+                            setShowConfirmPassword((visible) => !visible)
+                          }
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   )}
 

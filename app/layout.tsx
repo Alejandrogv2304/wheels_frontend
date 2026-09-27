@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
+import { GlobalRequestLoader } from '@/components/ui/global-request-loader'
 import { AuthProvider } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 
@@ -44,6 +45,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>{children}</AuthProvider>
+          <GlobalRequestLoader />
           <Toaster position="bottom-right" richColors />
         </ThemeProvider>
       </body>

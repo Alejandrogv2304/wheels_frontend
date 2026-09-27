@@ -77,6 +77,7 @@ export async function getViajes(params?: {
   limit?: number;
   rutaId?: string;
   fecha?: string;
+  fechaSalida?: string;
 }): Promise<ViajesResponse> {
   const response = await api.get("/viajes", { params });
   const data = response.data?.data ?? response.data;

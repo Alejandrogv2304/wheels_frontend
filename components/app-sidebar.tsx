@@ -63,7 +63,17 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Wheels UIS</SidebarGroupLabel>
+          <SidebarGroupLabel className="gap-2 text-sm font-semibold text-sidebar-foreground">
+            <Image
+              src="/favicon.ico"
+              alt=""
+              width={24}
+              height={24}
+              unoptimized
+              className="size-6 object-contain"
+            />
+            Wheels UIS
+          </SidebarGroupLabel>
 
           <Separator className="my-2" />
 

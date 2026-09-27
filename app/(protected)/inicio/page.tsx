@@ -14,7 +14,6 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { ProfileEditDialog } from "@/components/profile-edit-dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -168,7 +167,7 @@ export default function Inicio() {
   const [viajes, setViajes] = useState<Viaje[]>([]);
   const [meta, setMeta] = useState<ViajesMeta | null>(null);
   const [search, setSearch] = useState("");
-  const [rutaId, setRutaId] = useState("all");
+  const [fechaSalida, setFechaSalida] = useState("");
   const [loading, setLoading] = useState(true);
   const [detalles, setDetalles] = useState<Record<string, Viaje>>({});
   const [detalleCargando, setDetalleCargando] = useState<string | null>(null);
@@ -181,7 +180,13 @@ export default function Inicio() {
     async function loadViajes() {
       try {
         setLoading(true);
-        const response = await getViajes({ page: 1, limit: 50 });
+        const response = await getViajes({
+          page: 1,
+          limit: 50,
+          fechaSalida: fechaSalida
+            ? new Date(fechaSalida).toISOString()
+            : undefined,
+        });
         setViajes(response.viajes);
         setMeta(response.meta);
       } catch (error) {
@@ -191,7 +196,7 @@ export default function Inicio() {
       }
     }
     void Promise.resolve().then(loadViajes);
-  }, []);
+  }, [fechaSalida]);
 
   const rutas = useMemo(
     () =>
@@ -208,10 +213,9 @@ export default function Inicio() {
     const query = search.trim().toLocaleLowerCase();
     return viajes.filter(
       (viaje) =>
-        (rutaId === "all" || viaje.rutaId === rutaId) &&
-        (!query || viaje.ruta?.nombre.toLocaleLowerCase().includes(query)),
+        !query || viaje.ruta?.nombre.toLocaleLowerCase().includes(query),
     );
-  }, [viajes, rutaId, search]);
+  }, [viajes, search]);
   const cuposDisponibles = viajes.reduce(
     (total, viaje) => total + viaje.cupos,
     0,
@@ -300,42 +304,36 @@ export default function Inicio() {
             </div>
           )}
           <div>
-            <p className="text-sm font-medium text-primary">Panel de movilidad</p>
+            <p className="text-sm font-medium text-primary">
+              Panel de movilidad
+            </p>
             <h1 className="text-3xl font-semibold tracking-tight">
               Hola, {user?.nombre || "viajero"}
             </h1>
             <p className="text-muted-foreground">
-              Consulta salidas de la comunidad y encuentra un trayecto conveniente.
+              Consulta salidas de la comunidad y encuentra un trayecto
+              conveniente.
             </p>
           </div>
         </div>
         <ProfileEditDialog />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-4 divide-x rounded-lg border bg-card">
         {[
-          [
-            "Viajes activos",
-            meta?.total ?? viajes.length,
-            "salidas publicadas",
-          ],
-          ["Cupos disponibles", cuposDisponibles, "asientos para compartir"],
-          ["Rutas activas", rutas.length, "trayectos diferentes"],
-          ["Precio promedio", formatPrice(precioPromedio), "por cupo"],
-        ].map(([label, value, description]) => (
-          <Card key={label}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{value}</p>
-              <p className="text-xs text-muted-foreground">{description}</p>
-            </CardContent>
-          </Card>
+          ["Viajes", meta?.total ?? viajes.length],
+          ["Cupos", cuposDisponibles],
+          ["Rutas", rutas.length],
+          ["Precio medio", formatPrice(precioPromedio)],
+        ].map(([label, value]) => (
+          <div key={label} className="min-w-0 px-1.5 py-2 text-center sm:px-3">
+            <p className="truncate text-[10px] leading-4 text-muted-foreground sm:text-xs">
+              {label}
+            </p>
+            <p className="truncate text-sm font-semibold sm:text-lg">{value}</p>
+          </div>
         ))}
       </div>
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_220px_260px]">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -345,25 +343,20 @@ export default function Inicio() {
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
-        <Select
-          value={rutaId}
-          onValueChange={(value) => setRutaId(value ?? "all")}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Todas las rutas" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las rutas</SelectItem>
-            {rutas.map(
-              (ruta) =>
-                ruta && (
-                  <SelectItem key={ruta.id} value={ruta.id}>
-                    {ruta.nombre}
-                  </SelectItem>
-                ),
-            )}
-          </SelectContent>
-        </Select>
+        <div className="grid gap-1">
+          <label
+            htmlFor="fechaSalida"
+            className="text-xs font-medium text-muted-foreground"
+          >
+            Fecha y hora de salida
+          </label>
+          <Input
+            id="fechaSalida"
+            type="datetime-local"
+            value={fechaSalida}
+            onChange={(event) => setFechaSalida(event.target.value)}
+          />
+        </div>
       </div>
       {loading ? (
         <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
