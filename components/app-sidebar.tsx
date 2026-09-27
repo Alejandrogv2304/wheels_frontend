@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Car, Road, Route, Home, LogOut } from "lucide-react";
+import { CalendarCheck, Car, Road, Route, Home, LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -42,6 +42,11 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
     title: "Viajes",
     url: "/viajes",
     icon: Road,
+  },
+  {
+    title: "Reservas",
+    url: "/reservas",
+    icon: CalendarCheck,
   },
   {
     title: "Vehiculos",

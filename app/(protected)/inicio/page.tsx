@@ -16,14 +16,6 @@ import { useAuth } from "@/context/AuthContext";
 import { ProfileEditDialog } from "@/components/profile-edit-dialog";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  getViaje,
   getViajes,
   reservarViaje,
   cancelarReserva,
@@ -41,6 +33,13 @@ function formatDate(value: string) {
 
 function formatPrice(value: number | string) {
   return `$${Number(value).toLocaleString("es-CO")}`;
+}
+
+function formatDateTimeInput(value: Date) {
+  const localValue = new Date(
+    value.getTime() - value.getTimezoneOffset() * 60_000,
+  );
+  return localValue.toISOString().slice(0, 16);
 }
 
 function ViajeExpandedDetail({
@@ -169,12 +168,28 @@ export default function Inicio() {
   const [search, setSearch] = useState("");
   const [fechaSalida, setFechaSalida] = useState("");
   const [loading, setLoading] = useState(true);
-  const [detalles, setDetalles] = useState<Record<string, Viaje>>({});
-  const [detalleCargando, setDetalleCargando] = useState<string | null>(null);
   const [reservas, setReservas] = useState<Record<string, string>>({});
   const [reservaProcesando, setReservaProcesando] = useState<string | null>(
     null,
   );
+  const [minimumFechaSalida, setMinimumFechaSalida] = useState("");
+
+  useEffect(() => {
+    const updateMinimum = () => {
+      setMinimumFechaSalida(
+        formatDateTimeInput(
+          new Date(Math.ceil(Date.now() / 60_000) * 60_000),
+        ),
+      );
+    };
+    const initialUpdate = window.setTimeout(updateMinimum, 0);
+    const interval = window.setInterval(updateMinimum, 30_000);
+
+    return () => {
+      window.clearTimeout(initialUpdate);
+      window.clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     async function loadViajes() {
@@ -225,22 +240,16 @@ export default function Inicio() {
       viajes.length
     : 0;
 
-  async function handleViajeToggle(id: string, open: boolean) {
-    if (!open || detalles[id]) return;
-
-    try {
-      setDetalleCargando(id);
-      const detalle = await getViaje(id);
-      setDetalles((current) => ({ ...current, [id]: detalle }));
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setDetalleCargando(null);
-    }
-  }
-
   function getReservaId(viaje: Viaje) {
     return reservas[viaje.id] ?? viaje.reservaId ?? viaje.reserva?.id;
+  }
+
+  function handleFechaSalidaChange(value: string) {
+    if (value && new Date(value).getTime() < Date.now()) {
+      toast.error("Selecciona una fecha y hora a partir de ahora.");
+      return;
+    }
+    setFechaSalida(value);
   }
 
   async function handleReserve(viajeId: string) {
@@ -268,9 +277,7 @@ export default function Inicio() {
       setReservaProcesando(viajeId);
       await cancelarReserva(reservaId);
       setReservas((current) => {
-        const next = { ...current };
-        delete next[viajeId];
-        return next;
+        return { ...current, [viajeId]: "" };
       });
       setViajes((current) =>
         current.map((viaje) =>
@@ -333,15 +340,25 @@ export default function Inicio() {
           </div>
         ))}
       </div>
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_220px_260px]">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar por ruta..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px]">
+        <div className="grid gap-1">
+          <label
+            htmlFor="buscarRuta"
+            className="text-xs font-medium text-muted-foreground"
+          >
+            Buscar ruta
+          </label>
+          <div className="relative">
+            <Search className="pointer-events-none absolute inset-y-0 left-3 my-auto size-4 text-muted-foreground" />
+            <Input
+              id="buscarRuta"
+              type="search"
+              className="pl-9"
+              placeholder="Nombre de la ruta..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
         </div>
         <div className="grid gap-1">
           <label
@@ -353,8 +370,10 @@ export default function Inicio() {
           <Input
             id="fechaSalida"
             type="datetime-local"
+            min={minimumFechaSalida}
+            step={60}
             value={fechaSalida}
-            onChange={(event) => setFechaSalida(event.target.value)}
+            onChange={(event) => handleFechaSalidaChange(event.target.value)}
           />
         </div>
       </div>
@@ -372,9 +391,6 @@ export default function Inicio() {
             <details
               key={viaje.id}
               className="group border-y bg-background"
-              onToggle={(event) =>
-                void handleViajeToggle(viaje.id, event.currentTarget.open)
-              }
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-5 sm:px-6">
                 <span className="min-w-0">
@@ -390,22 +406,16 @@ export default function Inicio() {
                   <ChevronDown className="size-5 transition-transform group-open:rotate-180" />
                 </span>
               </summary>
-              {detalleCargando === viaje.id && !detalles[viaje.id] ? (
-                <div className="border-t px-4 py-5 text-sm text-muted-foreground sm:px-6">
-                  Cargando puntos del trayecto...
-                </div>
-              ) : (
-                <ViajeExpandedDetail
-                  viaje={detalles[viaje.id] ?? viaje}
-                  reservaId={getReservaId(detalles[viaje.id] ?? viaje)}
-                  reservando={reservaProcesando === viaje.id}
-                  onReserve={() => void handleReserve(viaje.id)}
-                  onCancel={() => {
-                    const reservaId = getReservaId(detalles[viaje.id] ?? viaje);
-                    if (reservaId) void handleCancel(viaje.id, reservaId);
-                  }}
-                />
-              )}
+              <ViajeExpandedDetail
+                viaje={viaje}
+                reservaId={getReservaId(viaje)}
+                reservando={reservaProcesando === viaje.id}
+                onReserve={() => void handleReserve(viaje.id)}
+                onCancel={() => {
+                  const reservaId = getReservaId(viaje);
+                  if (reservaId) void handleCancel(viaje.id, reservaId);
+                }}
+              />
             </details>
           ))}
         </div>

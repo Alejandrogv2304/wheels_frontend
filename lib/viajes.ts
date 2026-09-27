@@ -15,6 +15,7 @@ export interface Viaje {
   fechaCreacion: string;
   ruta?: Ruta;
   vehiculo?: Pick<Vehiculo, "id" | "marca" | "referencia" | "tipo">;
+  reservas?: Reserva[];
   reservaId?: string | null;
   reserva?: { id: string; estado?: string } | null;
 }
@@ -23,6 +24,15 @@ export interface Reserva {
   id: string;
   viajeId: string;
   estado?: string;
+  fechaCreacion?: string;
+  viaje?: {
+    id: string;
+    fechaSalida?: string;
+    precio?: number | string;
+    ruta?: Pick<Ruta, "id" | "nombre"> | null;
+    conductor?: { id?: string; nombre?: string; telefono?: string } | null;
+  } | null;
+  conductor?: { id?: string; nombre?: string; telefono?: string } | null;
 }
 
 export interface CrearViajePayload {
@@ -70,6 +80,12 @@ export async function reservarViaje(viajeId: string): Promise<Reserva> {
 
 export async function cancelarReserva(reservaId: string): Promise<void> {
   await api.patch(`/reservas/${reservaId}/cancelar`);
+}
+
+export async function getReservas(): Promise<Reserva[]> {
+  const response = await api.get("/reservas");
+  const data = response.data?.data ?? response.data;
+  return Array.isArray(data) ? data : data?.reservas ?? [];
 }
 
 export async function getViajes(params?: {

@@ -6,7 +6,6 @@ import type { Viaje } from "@/lib/viajes";
 
 interface ViajeDetailProps {
   viaje: Viaje | null;
-  loading: boolean;
 }
 
 function formatDate(value: string) {
@@ -16,7 +15,7 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-export function ViajeDetail({ viaje, loading }: ViajeDetailProps) {
+export function ViajeDetail({ viaje }: ViajeDetailProps) {
   const VehicleIcon = viaje?.vehiculo?.tipo.toLowerCase().includes("moto")
     ? Bike
     : CarFront;
@@ -24,15 +23,13 @@ export function ViajeDetail({ viaje, loading }: ViajeDetailProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{viaje && !loading && viaje.ruta?.nombre}</CardTitle>
+        <CardTitle>{viaje?.ruta?.nombre}</CardTitle>
       </CardHeader>
       <CardContent>
         {!viaje ? (
           <p className="text-sm text-muted-foreground">
             Selecciona un viaje para consultar sus detalles.
           </p>
-        ) : loading ? (
-          <p className="text-sm text-muted-foreground">Cargando detalle...</p>
         ) : (
           <div className="grid gap-4">
             <div>
