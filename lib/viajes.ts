@@ -91,6 +91,7 @@ export async function getReservas(): Promise<Reserva[]> {
 export async function getViajes(params?: {
   page?: number;
   limit?: number;
+  q?: string;
   rutaId?: string;
   fecha?: string;
   fechaSalida?: string;

@@ -58,15 +58,6 @@ export default function Home() {
             </Link>
           </div>
         </div>
-
-        <a
-          href="https://unsplash.com/photos/suZ9-M9BwoE"
-          target="_blank"
-          rel="noreferrer"
-          className="absolute bottom-3 right-4 z-10 text-[10px] text-white/75 underline underline-offset-2"
-        >
-          Foto de Zac Harris / Unsplash
-        </a>
       </section>
 
       <section className="border-b border-border bg-background">
@@ -98,18 +89,12 @@ export default function Home() {
             sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover"
           />
-          <a
-            href="https://unsplash.com/photos/dC74pJhUVzY"
-            target="_blank"
-            rel="noreferrer"
-            className="absolute bottom-2 right-2 rounded-sm bg-black/60 px-2 py-1 text-[10px] text-white"
-          >
-            Foto de Brecken Vaught / Unsplash
-          </a>
         </div>
 
         <div className="space-y-5">
-          <p className="text-sm font-semibold text-primary">Un camino en común</p>
+          <p className="text-sm font-semibold text-primary">
+            Un camino en común
+          </p>
           <h2 className="m-0 text-3xl font-semibold leading-tight sm:text-4xl">
             Menos viajes en solitario. Más comunidad en el camino.
           </h2>

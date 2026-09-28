@@ -192,26 +192,35 @@ export default function Inicio() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadViajes() {
       try {
-        setLoading(true);
+        if (!cancelled) setLoading(true);
         const response = await getViajes({
           page: 1,
           limit: 50,
+          q: search.trim() || undefined,
           fechaSalida: fechaSalida
             ? new Date(fechaSalida).toISOString()
             : undefined,
         });
+        if (cancelled) return;
         setViajes(response.viajes);
         setMeta(response.meta);
       } catch (error) {
-        console.error(error);
+        if (!cancelled) console.error(error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-    void Promise.resolve().then(loadViajes);
-  }, [fechaSalida]);
+
+    const timeout = window.setTimeout(() => void loadViajes(), 1000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [fechaSalida, search]);
 
   const rutas = useMemo(
     () =>
@@ -224,13 +233,6 @@ export default function Inicio() {
       ),
     [viajes],
   );
-  const viajesFiltrados = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase();
-    return viajes.filter(
-      (viaje) =>
-        !query || viaje.ruta?.nombre.toLocaleLowerCase().includes(query),
-    );
-  }, [viajes, search]);
   const cuposDisponibles = viajes.reduce(
     (total, viaje) => total + viaje.cupos,
     0,
@@ -381,13 +383,13 @@ export default function Inicio() {
         <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
           Cargando viajes disponibles...
         </div>
-      ) : viajesFiltrados.length === 0 ? (
+      ) : viajes.length === 0 ? (
         <div className="border-y py-16 text-center text-sm text-muted-foreground">
           No hay viajes que coincidan con los filtros.
         </div>
       ) : (
         <div className="grid gap-3">
-          {viajesFiltrados.map((viaje) => (
+          {viajes.map((viaje) => (
             <details
               key={viaje.id}
               className="group border-y bg-background"
